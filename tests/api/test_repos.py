@@ -6,13 +6,14 @@ import json
 import time
 import pytest
 import uuid
+from constance import config
 
 from django.core.urlresolvers import reverse
 from seaserv import seafile_api
 
 from tests.api.apitestbase import ApiTestBase
 from tests.api.urls import (
-    REPOS_URL, DEFAULT_REPO_URL, GET_REPO_TOKENS_URL
+    REPOS_URL, DEFAULT_REPO_URL, GET_REPO_TOKENS_URL, SYS_SETTINGS
 )
 from tests.common.utils import apiurl, urljoin, randstring
 from tests.common.common import SEAFILE_BASE_URL
@@ -161,6 +162,7 @@ class ReposApiTest(ApiTestBase):
         """Test create an encrypted repo with the secure keys generated on client
         side.
         """
+        self.admin_post(SYS_SETTINGS, data={'key': 'ENABLE_ENCRYPTED_LIBRARY', 'value': 1})
         repo_id = str(uuid.uuid4())
         password = randstring(16)
         enc_version = 2
@@ -185,6 +187,41 @@ class ReposApiTest(ApiTestBase):
 
         # do some file operation
         self.create_file(repo['repo_id'])
+
+
+    def test_create_encrypted_repo_with_disable_create_enc_library(self):
+        """Test create an encrypted repo with the secure keys generated on client
+        side.
+        """
+        res_set = self.admin_post(SYS_SETTINGS, data={'key': 'ENABLE_ENCRYPTED_LIBRARY', 'value': 0})
+        assert res_set.status_code == 200
+        repo_id = str(uuid.uuid4())
+        password = randstring(16)
+        enc_version = 2
+        enc_info = seafile_api.generate_magic_and_random_key(enc_version, repo_id, password)
+        data = {
+            'name': 'enc-test',
+            'repo_id': repo_id,
+            'enc_version': enc_version,
+            'magic': enc_info.magic,
+            'random_key': enc_info.random_key,
+        }
+        res = self.post(REPOS_URL, data=data)
+        assert res.status_code == 403
+        res_set = self.admin_post(SYS_SETTINGS, data={'key': 'ENABLE_ENCRYPTED_LIBRARY', 'value': 1})
+
+
+#        repo = res.json()
+#        assert repo['repo_id'] == repo_id
+#        assert repo['encrypted']
+#        assert repo['magic'] == enc_info.magic
+#        assert repo['random_key'] == enc_info.random_key
+#
+#        # validate the password on server
+#        set_password_url = apiurl('/api2/repos/{}/'.format(repo['repo_id']))
+#        self.post(set_password_url, data={'password': password})
+#
+        # do some file operation
 
 
 # Uncomment following to test api performance.

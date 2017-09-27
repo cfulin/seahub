@@ -28,3 +28,6 @@ LOGOUT_DEVICE_URL = apiurl('api2/logout-device/')
 SERVER_INFO_URL = apiurl('/api2/server-info/')
 
 CLIENT_LOGIN_TOKEN_URL = apiurl('/api2/client-login/')
+
+
+SYS_SETTINGS = apiurl('/sys/settings/')
